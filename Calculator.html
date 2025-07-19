@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumCalc | Scientific Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.3.0/math.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'calc-bg': '#1a1c2c',
+                        'calc-display': '#1e2130',
+                        'calc-btn': '#2d3253',
+                        'calc-btn-hover': '#3a416a',
+                        'calc-primary': '#6c5ce7',
+                        'calc-secondary': '#00cec9',
+                        'calc-function': '#ff7675',
+                        'calc-number': '#2d3253',
+                        'calc-equals': '#6c5ce7'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'button-press': 'buttonPress 0.2s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        buttonPress: {
+                            '0%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(0.95)' },
+                            '100%': { transform: 'scale(1)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1c2c 0%, #2d3253 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .calculator-container {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        
+        .display-container {
+            background: rgba(30, 33, 48, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(108, 92, 231, 0.3);
+        }
+        
+        .history-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .calculator-btn {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            user-select: none;
+        }
+        
+        .calculator-btn:active {
+            animation: buttonPress 0.2s ease-in-out;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6c5ce7 0%, #5d50d9 100%);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #00cec9 0%, #00b4b0 100%);
+        }
+        
+        .btn-function {
+            background: linear-gradient(135deg, #ff7675 0%, #e66767 100%);
+        }
+        
+        .btn-number {
+            background: rgba(45, 50, 83, 0.7);
+        }
+        
+        .btn-equals {
+            background: linear-gradient(135deg, #6c5ce7 0%, #5d50d9 100%);
+            box-shadow: 0 0 15px rgba(108, 92, 231, 0.5);
+        }
+        
+        .calculator-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .glow {
+            box-shadow: 0 0 15px rgba(108, 92, 231, 0.7);
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-md w-full calculator-container fade-in">
+        <!-- Header -->
+        <div class="bg-calc-bg py-4 px-6 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <h1 class="text-xl font-bold text-white">QuantumCalc</h1>
+            <div class="text-gray-400 text-sm">SCIENTIFIC</div>
+        </div>
+        
+        <!-- Display -->
+        <div class="display-container py-5 px-6">
+            <div class="text-right text-gray-400 text-sm h-6 overflow-x-auto whitespace-nowrap" id="history">
+                <!-- Calculation history will appear here -->
+            </div>
+            <div class="text-right text-white text-4xl font-semibold mt-2 overflow-x-auto whitespace-nowrap" id="display">0</div>
+        </div>
+        
+        <!-- Keypad -->
+        <div class="grid grid-cols-5 gap-2 p-4 bg-calc-bg">
+            <!-- Row 1 -->
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('π')">π</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('e')">e</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('(')">(</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick(')')">)</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleClear()">C</button>
+            
+            <!-- Row 2 -->
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('sin(')">sin</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('cos(')">cos</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('tan(')">tan</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('log(')">log</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('ln(')">ln</button>
+            
+            <!-- Row 3 -->
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('^')">x^y</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('sqrt(')">√</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('!')">x!</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleButtonClick('1/')">1/x</button>
+            <button class="calculator-btn btn-secondary text-white py-3 rounded-lg" onclick="handleButtonClick('%')">%</button>
+            
+            <!-- Row 4 -->
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('7')">7</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('8')">8</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('9')">9</button>
+            <button class="calculator-btn btn-primary text-white py-3 rounded-lg" onclick="handleButtonClick('/')">÷</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleMemory('MC')">MC</button>
+            
+            <!-- Row 5 -->
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('4')">4</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('5')">5</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('6')">6</button>
+            <button class="calculator-btn btn-primary text-white py-3 rounded-lg" onclick="handleButtonClick('*')">×</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleMemory('MR')">MR</button>
+            
+            <!-- Row 6 -->
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('1')">1</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('2')">2</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('3')">3</button>
+            <button class="calculator-btn btn-primary text-white py-3 rounded-lg" onclick="handleButtonClick('-')">−</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleMemory('M+')">M+</button>
+            
+            <!-- Row 7 -->
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('0')">0</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleButtonClick('.')">.</button>
+            <button class="calculator-btn btn-number text-white py-3 rounded-lg" onclick="handleBackspace()">⌫</button>
+            <button class="calculator-btn btn-primary text-white py-3 rounded-lg" onclick="handleButtonClick('+')">+</button>
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg" onclick="handleMemory('M-')">M-</button>
+            
+            <!-- Row 8 -->
+            <button class="calculator-btn btn-function text-white py-3 rounded-lg col-span-2" onclick="handleClear()">AC</button>
+            <button class="calculator-btn btn-equals text-white py-3 rounded-lg col-span-3" onclick="handleCalculate()">=</button>
+        </div>
+        
+        <!-- Memory Display -->
+        <div class="bg-calc-bg px-4 py-3 text-right text-gray-400 text-sm">
+            Memory: <span id="memory-display">0</span>
+        </div>
+    </div>
+
+    <script>
+        // Calculator state
+        let currentInput = '0';
+        let calculationHistory = [];
+        let memoryValue = 0;
+        let isNewInput = true;
+        
+        // DOM elements
+        const displayElement = document.getElementById('display');
+        const historyElement = document.getElementById('history');
+        const memoryDisplayElement = document.getElementById('memory-display');
+        
+        // Update display
+        function updateDisplay() {
+            displayElement.textContent = currentInput;
+            historyElement.textContent = calculationHistory.join(' ');
+            memoryDisplayElement.textContent = memoryValue;
+        }
+        
+        // Handle button clicks
+        function handleButtonClick(value) {
+            if (isNewInput) {
+                currentInput = (value === '.') ? '0.' : value;
+                isNewInput = false;
+            } else {
+                // Prevent multiple decimal points
+                if (value === '.' && currentInput.includes('.')) return;
+                
+                // Replace zero if it's the only digit
+                if (currentInput === '0' && value !== '.') {
+                    currentInput = value;
+                } else {
+                    currentInput += value;
+                }
+            }
+            
+            // Add animation effect
+            displayElement.classList.add('slide-in');
+            setTimeout(() => displayElement.classList.remove('slide-in'), 300);
+            
+            updateDisplay();
+        }
+        
+        // Handle calculation
+        function handleCalculate() {
+            if (currentInput === '0' && calculationHistory.length === 0) return;
+            
+            try {
+                // Add current input to history
+                calculationHistory.push(currentInput);
+                
+                // Prepare expression for evaluation
+                let expression = calculationHistory.join('').replace(/×/g, '*').replace(/÷/g, '/');
+                
+                // Special handling for factorial
+                if (expression.includes('!')) {
+                    expression = expression.replace(/(\d+)!/g, 'factorial($1)');
+                }
+                
+                // Evaluate using math.js
+                const result = math.evaluate(expression);
+                
+                // Format result
+                const formattedResult = parseFloat(result.toFixed(10)).toString();
+                
+                // Update history and current input
+                calculationHistory.push('=');
+                calculationHistory.push(formattedResult);
+                currentInput = formattedResult;
+                
+                // Add animation effect
+                displayElement.classList.add('glow');
+                setTimeout(() => displayElement.classList.remove('glow'), 500);
+            } catch (error) {
+                currentInput = 'Error';
+                calculationHistory = [];
+            }
+            
+            isNewInput = true;
+            updateDisplay();
+        }
+        
+        // Handle clear
+        function handleClear() {
+            currentInput = '0';
+            calculationHistory = [];
+            isNewInput = true;
+            
+            // Add animation effect
+            displayElement.classList.add('fade-in');
+            setTimeout(() => displayElement.classList.remove('fade-in'), 300);
+            
+            updateDisplay();
+        }
+        
+        // Handle backspace
+        function handleBackspace() {
+            if (currentInput.length === 1) {
+                currentInput = '0';
+                isNewInput = true;
+            } else {
+                currentInput = currentInput.slice(0, -1);
+            }
+            updateDisplay();
+        }
+        
+        // Handle memory functions
+        function handleMemory(action) {
+            try {
+                const currentValue = parseFloat(currentInput);
+                
+                switch(action) {
+                    case 'MC': // Memory Clear
+                        memoryValue = 0;
+                        break;
+                    case 'MR': // Memory Recall
+                        currentInput = memoryValue.toString();
+                        isNewInput = true;
+                        break;
+                    case 'M+': // Memory Add
+                        memoryValue += currentValue;
+                        break;
+                    case 'M-': // Memory Subtract
+                        memoryValue -= currentValue;
+                        break;
+                }
+                
+                // Add animation to memory display
+                memoryDisplayElement.classList.add('fade-in');
+                setTimeout(() => memoryDisplayElement.classList.remove('fade-in'), 300);
+                
+                updateDisplay();
+            } catch (error) {
+                currentInput = 'Error';
+                updateDisplay();
+            }
+        }
+        
+        // Initialize calculator
+        updateDisplay();
+        
+        // Add keyboard support
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+            
+            // Map keys to calculator functions
+            if (/[0-9]/.test(key)) {
+                handleButtonClick(key);
+            } else if (key === '.') {
+                handleButtonClick('.');
+            } else if (key === '+') {
+                handleButtonClick('+');
+            } else if (key === '-') {
+                handleButtonClick('-');
+            } else if (key === '*') {
+                handleButtonClick('*');
+            } else if (key === '/') {
+                handleButtonClick('/');
+            } else if (key === '(') {
+                handleButtonClick('(');
+            } else if (key === ')') {
+                handleButtonClick(')');
+            } else if (key === 'Enter' || key === '=') {
+                handleCalculate();
+            } else if (key === 'Escape') {
+                handleClear();
+            } else if (key === 'Backspace') {
+                handleBackspace();
+            } else if (key === '%') {
+                handleButtonClick('%');
+            } else if (key === '!') {
+                handleButtonClick('!');
+            }
+        });
+    </script>
+</body>
+</html>
